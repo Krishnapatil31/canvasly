@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>Log in — Canvasly</title>
+
+<link rel="stylesheet" href="../theme.css">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script src="../firebase-config.js"></script>
+
+<script>
+(function(){
+
+ if(!window.CANVASLY_FIREBASE_CONFIG ||
+ String(window.CANVASLY_FIREBASE_CONFIG.apiKey).startsWith("PASTE_"))
+ return;
+
+ firebase.initializeApp(window.CANVASLY_FIREBASE_CONFIG);
+
+ window.canvaslyAuth=firebase.auth();
+ window.canvaslyDb=firebase.firestore();
+ window.canvaslyFirebaseReady=true;
+
+})();
+</script>
+
+</head>
+
+<body>
+
+<header class="sticky top-0 z-50 border-b border-white/10 bg-[#070b16]/90 backdrop-blur-xl">
+
+<div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:h-[72px] sm:px-6 lg:px-8">
+
+<a href="../" class="flex shrink-0 items-center gap-2.5">
+
+<span class="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] font-black">
+C
+</span>
+
+<span class="hidden text-lg font-black sm:inline">
+Canvasly
+</span>
+
+</a>
+
+<div class="hidden min-w-0 flex-1 md:block">
+
+<div class="relative mx-auto max-w-2xl">
+
+<input
+id="globalSearch"
+aria-label="Search wallpapers"
+placeholder="Search wallpapers, anime, gaming, cars..."
+class="focus-ring w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 pr-12 text-sm outline-none placeholder:text-slate-500">
+
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+⌕
+</span>
+
+</div>
+
+</div>
+
+<nav class="ml-auto flex items-center gap-1 text-sm">
+
+<a href="../gallery/"
+class="hidden rounded-full px-3 py-2 text-slate-300 hover:bg-white/5 sm:inline">
+Gallery
+</a>
+
+<a href="../editor/"
+class="rounded-full px-3 py-2 text-slate-300 hover:bg-white/5">
+Workspace
+</a>
+
+<a href="../login/"
+id="navLogin"
+class="rounded-full px-3 py-2 text-slate-300 hover:bg-white/5">
+Log in
+</a>
+
+<a href="../signup/"
+id="navSignup"
+class="rounded-full bg-[var(--primary)] px-4 py-2 font-semibold hover:brightness-110">
+Sign up
+</a>
+
+<button id="navLogout"
+class="hidden rounded-full border border-white/10 px-3 py-2 text-slate-300 hover:bg-white/5">
+Log out
+</button>
+
+</nav>
+
+</div>
+
+</header>
+
+<main class="mx-auto grid min-h-[calc(100vh-72px)] max-w-7xl place-items-center px-4 py-10">
+
+<section class="w-full max-w-md rounded-3xl border border-white/10 bg-[var(--surface)] p-6 shadow-2xl sm:p-8">
+
+<a href="../" class="flex items-center gap-3 text-xl font-black">
+
+<span class="grid h-10 w-10 place-items-center rounded-xl bg-[var(--primary)]">
+C
+</span>
+
+Canvasly
+
+</a>
+
+<p class="mt-9 text-sm font-semibold text-[var(--primary)]">
+Welcome back
+</p>
+
+<h1 class="mt-1 text-4xl font-black">
+Log in.
+</h1>
+
+<p class="mt-3 text-slate-400">
+Sign in to save, rate and manage your Canvasly account.
+</p>
+
+<form id="loginForm" class="mt-7 space-y-4">
+
+<label class="block text-sm font-semibold">
+Email
+
+<input
+id="email"
+type="email"
+required
+autocomplete="email"
+class="focus-ring mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none">
+
+</label>
+
+<label class="block text-sm font-semibold">
+Password
+
+<input
+id="password"
+type="password"
+required
+autocomplete="current-password"
+class="focus-ring mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none">
+
+</label>
+
+<button
+class="w-full rounded-full bg-[var(--primary)] px-5 py-3.5 font-bold hover:brightness-110">
+Log in
+</button>
+
+</form>
+
+<p id="message" class="mt-4 min-h-5 text-center text-sm text-rose-300"></p>
+
+<p class="mt-6 text-center text-sm text-slate-400">
+New here?
+<a class="font-semibold text-[var(--primary)]" href="../signup/">
+Create an account
+</a>
+</p>
+
+</section>
+
+</main>
+
+<script>
+
+function showError(text){
+
+ const e=document.getElementById("message");
+
+ if(e) e.textContent=text||"";
+
+}
+
+function logout(){
+
+ if(window.canvaslyAuth)
+   canvaslyAuth.signOut().then(()=>location.href="../");
+ else
+   location.href="../";
+
+}
+
+function setNav(user){
+
+ const login=document.getElementById("navLogin");
+ const signup=document.getElementById("navSignup");
+ const out=document.getElementById("navLogout");
+
+ if(user){
+
+   if(login) login.classList.add("hidden");
+   if(signup) signup.classList.add("hidden");
+
+   if(out){
+
+     out.classList.remove("hidden");
+
+     out.onclick=logout;
+
+   }
+
+ }
+
+}
+
+if(!window.canvaslyFirebaseReady){
+
+ showError(
+ "Firebase is not configured yet. Add your Firebase web config in firebase-config.js."
+ );
+
+}
+
+document.getElementById("loginForm").addEventListener(
+"submit",
+async function(e){
+
+ e.preventDefault();
+
+ if(!window.canvaslyFirebaseReady){
+
+   showError("Firebase is not configured.");
+   return;
+
+ }
+
+ try{
+
+   await canvaslyAuth.signInWithEmailAndPassword(
+     document.getElementById("email").value.trim().toLowerCase(),
+     document.getElementById("password").value
+   );
+
+   location.href="../gallery/";
+
+ }catch(err){
+
+   console.error(err);
+
+   showError("Incorrect email or password.");
+
+ }
+
+});
+
+if(window.canvaslyFirebaseReady){
+
+ canvaslyAuth.onAuthStateChanged(user=>{
+   if(user) setNav(user);
+ });
+
+}
+
+</script>
+
+</body>
+</html>
