@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Gallery — Canvasly</title>
+
+<link rel="stylesheet" href="../theme.css">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="../firebase-config.js"></script>
+
+<script>
+(function(){
+  if(!window.CANVASLY_FIREBASE_CONFIG ||
+     String(window.CANVASLY_FIREBASE_CONFIG.apiKey).startsWith("PASTE_")) return;
+
+  firebase.initializeApp(window.CANVASLY_FIREBASE_CONFIG);
+  window.canvaslyAuth = firebase.auth();
+  window.canvaslyDb = firebase.firestore();
+  window.canvaslyFirebaseReady = true;
+})();
+</script>
+</head>
+
+<body>
+
+<header class="sticky top-0 z-50 border-b border-white/10 bg-[#070b16]/90 backdrop-blur-xl">
+<div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:h-[72px] sm:px-6 lg:px-8">
+
+<a href="../" class="flex shrink-0 items-center gap-2.5">
+<span class="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] font-black">C</span>
+<span class="hidden text-lg font-black sm:inline">Canvasly</span>
+</a>
+
+<div class="hidden min-w-0 flex-1 md:block">
+<div class="relative mx-auto max-w-2xl">
+<input id="globalSearch"
+aria-label="Search wallpapers"
+placeholder="Search wallpapers, anime, gaming, cars..."
+class="focus-ring w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 pr-12 text-sm outline-none placeholder:text-slate-500">
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
+</div>
+</div>
+
+<nav class="ml-auto flex items-center gap-1 text-sm">
+<a href="../gallery/" class="hidden rounded-full px-3 py-2 text-slate-300 hover:bg-white/5 sm:inline">Gallery</a>
+<a href="../editor/" class="rounded-full px-3 py-2 text-slate-300 hover:bg-white/5">Workspace</a>
+<a href="../login/" id="navLogin" class="rounded-full px-3 py-2 text-slate-300 hover:bg-white/5">Log in</a>
+<a href="../signup/" id="navSignup" class="rounded-full bg-[var(--primary)] px-4 py-2 font-semibold hover:brightness-110">Sign up</a>
+<button id="navLogout" class="hidden rounded-full border border-white/10 px-3 py-2 text-slate-300 hover:bg-white/5">Log out</button>
+</nav>
+</div>
+
+<div class="border-t border-white/5 px-4 py-2 md:hidden">
+<input id="mobileSearch"
+aria-label="Search wallpapers"
+placeholder="Search wallpapers..."
+class="focus-ring w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none placeholder:text-slate-500">
+</div>
+</header>
+
+<main class="mx-auto max-w-7xl px-4 pb-16 pt-7 sm:px-6 lg:px-8">
+
+<section class="rounded-3xl border border-white/10 bg-gradient-to-r from-indigo-950/70 to-slate-900 p-6 sm:p-8">
+<p class="text-sm font-semibold text-[var(--primary)]">Wallpaper marketplace</p>
+<h1 class="mt-1 text-3xl font-black sm:text-5xl">Find your next wallpaper.</h1>
+<p class="mt-3 max-w-2xl text-slate-400">
+Browse Krishna's collection across phones, desktops and gaming setups.
+</p>
+</section>
+
+<div class="mt-7 flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="filters">
+<button data-cat="All" class="filter shrink-0 rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold">All</button>
+<button data-cat="Anime" class="filter shrink-0 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">Anime</button>
+<button data-cat="Gaming" class="filter shrink-0 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">Gaming</button>
+<button data-cat="Cars" class="filter shrink-0 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">Cars</button>
+<button data-cat="Nature" class="filter shrink-0 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">Nature</button>
+<button data-cat="Abstract" class="filter shrink-0 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">Abstract</button>
+<button data-cat="4K" class="filter shrink-0 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">4K</button>
+</div>
+
+<div id="status" class="mt-5 text-sm text-slate-500">Loading wallpapers...</div>
+<div id="gallery" class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4"></div>
+
+</main>
+
+<script>
+
+const built = [
+ {id:"b1",title:"Aurora",category:"Nature",bg:"linear-gradient(135deg,#172554,#0f766e,#a7f3d0)"},
+ {id:"b2",title:"Signal",category:"Abstract",bg:"linear-gradient(135deg,#171717,#db2777,#f59e0b)"},
+ {id:"b3",title:"Deep Focus",category:"Gaming",bg:"linear-gradient(135deg,#111827,#312e81,#06b6d4)"},
+ {id:"b4",title:"Soft Horizon",category:"Nature",bg:"linear-gradient(135deg,#fecdd3,#fda4af,#c4b5fd)"},
+ {id:"b5",title:"Electric Dusk",category:"4K",bg:"linear-gradient(135deg,#312e81,#7c3aed,#22d3ee)"},
+ {id:"b6",title:"Clear Thinking",category:"Abstract",bg:"linear-gradient(135deg,#164e63,#155e75,#a5f3fc)"}
+];
+
+let all = [...built];
+let active = "All";
+let query = "";
+let savedCache = [];
+
+function esc(s){
+ return String(s ?? "").replace(/[&<>"']/g,c=>({
+ "&":"&amp;",
+ "<":"&lt;",
+ ">":"&gt;",
+ '"':"&quot;",
+ "'":"&#39;"
+ }[c]));
+}
+
+function setNav(user){
+ const login=document.getElementById("navLogin");
+ const signup=document.getElementById("navSignup");
+ const out=document.getElementById("navLogout");
+
+ if(user){
+   if(login) login.classList.add("hidden");
+   if(signup) signup.classList.add("hidden");
+
+   if(out){
+     out.classList.remove("hidden");
+     out.onclick=async()=>{
+       await canvaslyAuth.signOut();
+       location.href="../";
+     };
+   }
+ }
+}
+
+async function getSaved(){
+
+ const u=window.canvaslyAuth?.currentUser;
+
+ if(!u || !window.canvaslyFirebaseReady) return [];
+
+ const snap=await canvaslyDb
+   .collection("users")
+   .doc(u.uid)
+   .collection("saved")
+   .get();
+
+ return snap.docs.map(d=>d.id);
+}
+
+async function refreshSaved(){
+ savedCache=await getSaved();
+ render();
+}
+
+async function downloadItem(item){
+
+ if(!item.image){
+   alert("This demo wallpaper is a gradient. Owner-uploaded image downloads work automatically.");
+   return;
+ }
+
+ const a=document.createElement("a");
+ a.href=item.image;
+ a.download=(item.title||"wallpaper")+".jpg";
+ a.target="_blank";
+ a.click();
+}
+
+async function render(){
+
+ const list=all.filter(x =>
+   (active==="All" || x.category===active) &&
+   (!query ||
+    x.title.toLowerCase().includes(query) ||
+    x.category.toLowerCase().includes(query))
+ );
+
+ document.getElementById("status").textContent =
+   list.length ? list.length+" wallpapers" : "No wallpapers found.";
+
+ document.getElementById("gallery").innerHTML=list.map(x=>{
+
+   const isSaved=savedCache.includes(x.id);
+
+   const background=x.image
+     ? `url("${x.image}") center/cover`
+     : x.bg;
+
+   return `
+   <article class="card-hover overflow-hidden rounded-2xl border border-white/10 bg-[var(--surface)]">
+
+     <button class="block w-full text-left"
+       onclick='downloadItem(${JSON.stringify(x)})'>
+
+       <div class="relative aspect-[4/3] sm:aspect-[3/4]"
+         style="background:${background}">
+
+         <span class="absolute left-2 top-2 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur">
+           ${esc(x.category)}
+         </span>
+
+         <span class="absolute bottom-2 right-2 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-900">
+           Download
+         </span>
+
+       </div>
+     </button>
+
+     <div class="p-3 sm:p-4">
+
+       <h2 class="truncate font-bold">${esc(x.title)}</h2>
+
+       <p class="mt-1 text-xs text-slate-500">
+         ${x.owner ? "Uploaded by Krishna" : "Canvasly collection"}
+       </p>
+
+       <div class="mt-3 flex items-center justify-between gap-2">
+
+         <button
+           onclick='toggleSave("${x.id}")'
+           class="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/5">
+           ${isSaved ? "★ Saved" : "☆ Save"}
+         </button>
+
+         ${
+           x.owner
+           ? `
+           <select
+             aria-label="Rate ${esc(x.title)}"
+             onchange='rateWallpaper("${x.id}",this.value)'
+             class="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-xs">
+             <option value="">Rate</option>
+             ${[1,2,3,4,5].map(n=>`<option value="${n}">${n} ★</option>`).join("")}
+           </select>`
+           : `<span class="text-xs text-slate-500">Built-in</span>`
+         }
+
+         <span class="text-xs text-amber-300">
+           ★ ${x.rating || "New"}
+         </span>
+
+       </div>
+     </div>
+
+   </article>`;
+ }).join("");
+}
+
+window.toggleSave=async function(id){
+
+ if(!canvaslyAuth?.currentUser){
+   location.href="../login/";
+   return;
+ }
+
+ const ref=canvaslyDb
+   .collection("users")
+   .doc(canvaslyAuth.currentUser.uid)
+   .collection("saved")
+   .doc(id);
+
+ if(savedCache.includes(id)){
+   await ref.delete();
+   savedCache=savedCache.filter(x=>x!==id);
+ }else{
+   await ref.set({
+     wallpaperId:id,
+     savedAt:firebase.firestore.FieldValue.serverTimestamp()
+   });
+   savedCache.push(id);
+ }
+
+ render();
+};
+
+window.rateWallpaper=async function(id,value){
+
+ const u=canvaslyAuth?.currentUser;
+
+ if(!u){
+   location.href="../login/";
+   return;
+ }
+
+ const rating=Number(value);
+
+ if(!rating) return;
+
+ await canvaslyDb
+   .collection("wallpapers")
+   .doc(id)
+   .collection("ratings")
+   .doc(u.uid)
+   .set({
+     rating:rating,
+     updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+   });
+
+ const snap=await canvaslyDb
+   .collection("wallpapers")
+   .doc(id)
+   .collection("ratings")
+   .get();
+
+ const avg=snap.docs.length
+   ? snap.docs.reduce((a,d)=>a+Number(d.data().rating||0),0)/snap.docs.length
+   : 0;
+
+ const item=all.find(x=>x.id===id);
+
+ if(item) item.rating=avg.toFixed(1);
+
+ render();
+};
+
+document.querySelectorAll(".filter").forEach(b=>{
+
+ b.onclick=()=>{
+
+   active=b.dataset.cat;
+
+   document.querySelectorAll(".filter").forEach(x=>{
+     x.className="filter shrink-0 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400";
+   });
+
+   b.className="filter shrink-0 rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold";
+
+   render();
+ };
+});
+
+function search(v){
+ query=v.trim().toLowerCase();
+ render();
+}
+
+["globalSearch","mobileSearch"].forEach(id=>{
+ const e=document.getElementById(id);
+ if(e) e.oninput=()=>search(e.value);
+});
+
+async function loadRemote(){
+
+ if(!window.canvaslyFirebaseReady){
+   render();
+   document.getElementById("status").textContent=
+   "Demo collection loaded. Configure Firebase to publish owner wallpapers.";
+   return;
+ }
+
+ try{
+
+   const snap=await canvaslyDb
+     .collection("wallpapers")
+     .where("published","==",true)
+     .orderBy("createdAt","desc")
+     .get();
+
+   snap.forEach(d=>{
+     const x=d.data();
+
+     all.unshift({
+       id:d.id,
+       title:x.title,
+       category:x.category,
+       image:x.imageUrl,
+       owner:true,
+       rating:x.rating||"New"
+     });
+   });
+
+   render();
+
+ }catch(e){
+
+   console.error(e);
+   render();
+
+   document.getElementById("status").textContent=
+   "Could not load online wallpapers. Check Firebase Firestore rules/indexes.";
+ }
+}
+
+if(window.canvaslyFirebaseReady){
+
+ canvaslyAuth.onAuthStateChanged(async user=>{
+
+   setNav(user);
+
+   if(user){
+     await refreshSaved();
+   }else{
+     savedCache=[];
+     render();
+   }
+
+ });
+}
+
+loadRemote();
+
+</script>
+
+</body>
+</html>
