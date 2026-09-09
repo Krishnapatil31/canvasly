@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>My Workspace — Canvasly</title>
+
+<link rel="stylesheet" href="../theme.css">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script src="../firebase-config.js"></script>
+
+<script>
+(function(){
+
+ if(!window.CANVASLY_FIREBASE_CONFIG ||
+ String(window.CANVASLY_FIREBASE_CONFIG.apiKey).startsWith("PASTE_"))
+ return;
+
+ firebase.initializeApp(window.CANVASLY_FIREBASE_CONFIG);
+
+ window.canvaslyAuth=firebase.auth();
+ window.canvaslyDb=firebase.firestore();
+ window.canvaslyFirebaseReady=true;
+
+})();
+</script>
+
+</head>
+
+<body>
+
+<header class="sticky top-0 z-50 border-b border-white/10 bg-[#070b16]/90 backdrop-blur-xl">
+
+<div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:h-[72px] sm:px-6 lg:px-8">
+
+<a href="../" class="flex shrink-0 items-center gap-2.5">
+
+<span class="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] font-black">
+C
+</span>
+
+<span class="hidden text-lg font-black sm:inline">
+Canvasly
+</span>
+
+</a>
+
+<div class="hidden min-w-0 flex-1 md:block">
+
+<div class="relative mx-auto max-w-2xl">
+
+<input
+id="globalSearch"
+placeholder="Search wallpapers, anime, gaming, cars..."
+class="focus-ring w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 pr-12 text-sm outline-none placeholder:text-slate-500">
+
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+⌕
+</span>
+
+</div>
+
+</div>
+
+<nav class="ml-auto flex items-center gap-1 text-sm">
+
+<a href="../gallery/"
+class="hidden rounded-full px-3 py-2 text-slate-300 hover:bg-white/5 sm:inline">
+Gallery
+</a>
+
+<a href="../editor/"
+class="rounded-full px-3 py-2 text-slate-300 hover:bg-white/5">
+Workspace
+</a>
+
+<a href="../login/"
+id="navLogin"
+class="rounded-full px-3 py-2 text-slate-300 hover:bg-white/5">
+Log in
+</a>
+
+<a href="../signup/"
+id="navSignup"
+class="rounded-full bg-[var(--primary)] px-4 py-2 font-semibold hover:brightness-110">
+Sign up
+</a>
+
+<button
+id="navLogout"
+class="hidden rounded-full border border-white/10 px-3 py-2 text-slate-300 hover:bg-white/5">
+Log out
+</button>
+
+</nav>
+
+</div>
+
+</header>
+
+<main class="mx-auto max-w-7xl px-4 pb-16 pt-7 sm:px-6 lg:px-8">
+
+<div id="loading"
+class="rounded-3xl border border-white/10 bg-[var(--surface)] p-8 text-center text-slate-400">
+Checking owner access...
+</div>
+
+<div id="notOwner"
+class="hidden rounded-3xl border border-white/10 bg-[var(--surface)] p-8 text-center">
+
+<p class="text-2xl font-black">
+🔒 Owner workspace
+</p>
+
+<p class="mt-3 text-slate-400">
+Only the authenticated Canvasly owner can publish wallpapers.
+</p>
+
+<a href="../login/"
+class="mt-5 inline-flex rounded-full bg-[var(--primary)] px-5 py-3 font-bold">
+Log in
+</a>
+
+</div>
+
+<div id="owner" class="hidden">
+
+<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+
+<div>
+
+<p class="text-sm font-semibold text-[var(--primary)]">
+Creator dashboard
+</p>
+
+<h1 class="mt-1 text-3xl font-black sm:text-5xl">
+My Workspace
+</h1>
+
+<p class="mt-3 text-slate-400">
+Add a public image URL. Wallpaper metadata is saved in Firestore.
+</p>
+
+</div>
+
+<a href="../gallery/"
+class="rounded-full border border-white/10 px-5 py-3 text-sm font-semibold">
+View gallery
+</a>
+
+</div>
+
+<div class="mt-7 grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
+
+<section class="rounded-3xl border border-white/10 bg-[var(--surface)] p-5 sm:p-7">
+
+<h2 class="text-xl font-black">
+Publish wallpaper
+</h2>
+
+<form id="uploadForm" class="mt-6 space-y-4">
+
+<label class="block text-sm font-semibold">
+
+Image URL
+
+<input
+id="imageUrl"
+type="url"
+required
+placeholder="https://example.com/wallpaper.jpg"
+class="focus-ring mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none">
+
+</label>
+
+<label class="block text-sm font-semibold">
+
+Wallpaper title
+
+<input
+id="title"
+required
+maxlength="80"
+placeholder="e.g. Cyberpunk Night"
+class="focus-ring mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none">
+
+</label>
+
+<label class="block text-sm font-semibold">
+
+Category
+
+<select
+id="category"
+class="focus-ring mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none">
+
+<option>Anime</option>
+<option>Gaming</option>
+<option>Cars</option>
+<option>Nature</option>
+<option>Abstract</option>
+<option>4K</option>
+
+</select>
+
+</label>
+
+<div
+id="preview"
+class="hidden aspect-video overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+</div>
+
+<button
+id="uploadBtn"
+class="w-full rounded-full bg-[var(--primary)] px-5 py-3.5 font-bold hover:brightness-110">
+Publish wallpaper
+</button>
+
+<p id="message" class="min-h-5 text-center text-sm"></p>
+
+</form>
+
+</section>
+
+<section>
+
+<div class="flex items-center justify-between">
+
+<h2 class="text-xl font-black">
+Published wallpapers
+</h2>
+
+<span id="count" class="text-sm text-slate-500"></span>
+
+</div>
+
+<div id="mine" class="mt-4 grid gap-4 sm:grid-cols-2"></div>
+
+</section>
+
+</div>
+
+</div>
+
+</main>
+
+<script>
+
+const OWNER_EMAIL="kp7259655@gmail.com";
+
+function msg(text,ok=false){
+
+ const e=document.getElementById("message");
+
+ e.textContent=text;
+
+ e.className=
+ "min-h-5 text-center text-sm "+
+ (ok ? "text-emerald-300" : "text-rose-300");
+
+}
+
+function setNav(user){
+
+ const login=document.getElementById("navLogin");
+ const signup=document.getElementById("navSignup");
+ const out=document.getElementById("navLogout");
+
+ if(user){
+
+   if(login) login.classList.add("hidden");
+   if(signup) signup.classList.add("hidden");
+
+   if(out){
+
+     out.classList.remove("hidden");
+
+     out.onclick=async()=>{
+       await canvaslyAuth.signOut();
+       location.href="../";
+     };
+
+   }
+
+ }
+
+}
+
+function safeText(value){
+
+ return String(value||"")
+   .replace(/[&<>"]/g,"");
+
+}
+
+function renderMine(items){
+
+ document.getElementById("count").textContent=
+ items.length+" published";
+
+ document.getElementById("mine").innerHTML=
+
+ items.map(x=>`
+
+ <div class="overflow-hidden rounded-2xl border border-white/10 bg-[var(--surface)]">
+
+ <div
+ class="aspect-video bg-cover bg-center"
+ style="background-image:url('${String(x.imageUrl).replace(/'/g,"%27")}')">
+ </div>
+
+ <div class="p-4">
+
+ <p class="font-bold truncate">
+ ${safeText(x.title)}
+ </p>
+
+ <p class="mt-1 text-xs text-slate-500">
+ ${safeText(x.category)}
+ </p>
+
+ <button
+ onclick="removeWallpaper('${x.id}')"
+ class="mt-3 text-xs font-semibold text-rose-300">
+ Delete
+ </button>
+
+ </div>
+
+ </div>
+
+ `).join("")
+
+ || '<p class="text-sm text-slate-500">No wallpapers published yet.</p>';
+
+}
+
+async function init(){
+
+ document.getElementById("loading").classList.add("hidden");
+
+ if(!window.canvaslyFirebaseReady){
+
+   document.getElementById("notOwner").classList.remove("hidden");
+
+   return;
+
+ }
+
+ canvaslyAuth.onAuthStateChanged(async user=>{
+
+   if(!user){
+
+     document.getElementById("notOwner").classList.remove("hidden");
+     return;
+
+   }
+
+   if(user.email!==OWNER_EMAIL){
+
+     document.getElementById("notOwner").classList.remove("hidden");
+     return;
+
+   }
+
+   document.getElementById("owner").classList.remove("hidden");
+
+   setNav(user);
+
+   await loadMine();
+
+ });
+
+}
+
+async function loadMine(){
+
+ const snap=await canvaslyDb
+   .collection("wallpapers")
+   .where("ownerUid","==",canvaslyAuth.currentUser.uid)
+   .get();
+
+ let items=[];
+
+ snap.forEach(d=>{
+
+   items.push({
+     id:d.id,
+     ...d.data()
+   });
+
+ });
+
+ items.sort((a,b)=>
+   (b.createdAt?.seconds||0)-
+   (a.createdAt?.seconds||0)
+ );
+
+ renderMine(items);
+
+}
+
+document.getElementById("imageUrl").oninput=function(){
+
+ const url=this.value.trim();
+ const preview=document.getElementById("preview");
+
+ if(url){
+
+   preview.classList.remove("hidden");
+
+   preview.style.backgroundImage=
+     `url("${url.replace(/"/g,"%22")}")`;
+
+   preview.style.backgroundSize="cover";
+   preview.style.backgroundPosition="center";
+
+ }else{
+
+   preview.classList.add("hidden");
+
+ }
+
+};
+
+document.getElementById("uploadForm").onsubmit=
+async function(e){
+
+ e.preventDefault();
+
+ const url=document.getElementById("imageUrl").value.trim();
+ const title=document.getElementById("title").value.trim();
+ const category=document.getElementById("category").value;
+
+ const btn=document.getElementById("uploadBtn");
+
+ if(!url){
+
+   msg("Please enter an image URL.");
+   return;
+
+ }
+
+ if(!/^https?:\/\//i.test(url)){
+
+   msg("Image URL must start with http:// or https://");
+   return;
+
+ }
+
+ btn.disabled=true;
+ btn.textContent="Publishing...";
+
+ try{
+
+   await canvaslyDb
+     .collection("wallpapers")
+     .add({
+
+       title:title,
+       category:category,
+       imageUrl:url,
+       ownerUid:canvaslyAuth.currentUser.uid,
+       published:true,
+       createdAt:firebase.firestore.FieldValue.serverTimestamp()
+
+     });
+
+   this.reset();
+
+   document.getElementById("preview").classList.add("hidden");
+
+   msg(
+     "✓ Published. It is now available in the public gallery.",
+     true
+   );
+
+   await loadMine();
+
+ }catch(error){
+
+   console.error(error);
+
+   msg(
+     "Publish failed. Check Firebase Firestore rules."
+   );
+
+ }
+
+ btn.disabled=false;
+ btn.textContent="Publish wallpaper";
+
+};
+
+window.removeWallpaper=async function(id){
+
+ if(!confirm("Delete this wallpaper?"))
+ return;
+
+ try{
+
+   await canvaslyDb
+     .collection("wallpapers")
+     .doc(id)
+     .delete();
+
+   await loadMine();
+
+ }catch(error){
+
+   console.error(error);
+   msg("Delete failed.");
+
+ }
+
+};
+
+init();
+
+</script>
+
+</body>
+</html>
