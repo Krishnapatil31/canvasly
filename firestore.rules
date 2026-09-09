@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner() {
+      return signedIn() && request.auth.token.email == "kp7259655@gmail.com";
+    }
+
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+      match /saved/{wallpaperId} {
+        allow read, write: if signedIn() && request.auth.uid == uid;
+      }
+    }
+
+    match /wallpapers/{id} {
+      allow read: if resource.data.published == true || isOwner();
+      allow create: if isOwner()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.published == true
+        && request.resource.data.title is string
+        && request.resource.data.category is string
+        && request.resource.data.imageUrl is string;
+      allow update, delete: if isOwner() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /wallpapers/{wallpaperId}/ratings/{uid} {
+      allow read: if true;
+      allow create, update, delete: if signedIn() && request.auth.uid == uid
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name":"Canvasly by Krishna",
+  "short_name":"Canvasly",
+  "description":"A premium wallpaper marketplace by Krishna.",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#070b16",
+  "theme_color":"#7c5cff",
+  "id":"canvasly",
+  "icons":[{"src":"./icon.svg","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]
+}
